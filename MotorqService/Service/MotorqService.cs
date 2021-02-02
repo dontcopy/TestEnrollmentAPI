@@ -1,4 +1,5 @@
-﻿using MotorqService.Models;
+﻿
+using MotorqService.Models;
 using System;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -8,20 +9,25 @@ namespace MotorqService.Service
 {
     public class MotorqService : IMotorqService
     {
-        private IHttpClientFactory _httpClientFactory;
-        private readonly HttpClient _httpClient;
+        private HttpClient _client = null;
         private readonly string _baseUrl= "https://mfleetdevapi.motorq.co";
-        public MotorqService(HttpClient httpClient)
+
+        public MotorqService(HttpClient client = null)
         {
-            _httpClient = httpClient;
+            if (client == null)
+            {
+                _client = new HttpClient
+                {
+                    BaseAddress = new Uri(_baseUrl)
+                };
+            }
+            else
+                _client = client;
         }
+
         public async Task<TokenResponseModel> GetAccessToken(TokenRequestModel request)
         {
-            var httpClient = new HttpClient
-            {
-                BaseAddress = new Uri("https://mfleetdevapi.motorq.co")
-            };
-            using var response = await httpClient.PostAsJsonAsync("v3/oauth/token", request);
+            using var response = await _client.PostAsJsonAsync("v3/oauth/token", request);
             response.EnsureSuccessStatusCode();
             var result = await response.Content.ReadFromJsonAsync<TokenResponseModel>();
 
@@ -34,12 +40,16 @@ namespace MotorqService.Service
             throw new NotImplementedException();
         }
 
-        public Task<string> GetDriver(string path)
+        public async Task<string> GetDriver(string path)
         {
-            throw new NotImplementedException();
+            var driver = string.Empty;
+            HttpResponseMessage response = await _client.GetAsync(path);
+            if (response.IsSuccessStatusCode)
+            {
+                driver = await response.Content.ReadAsStringAsync();
+            }
+            return driver;
         }
-
-
 
         /*public static async Task<Product> GetProductAsync(string path)
         {
